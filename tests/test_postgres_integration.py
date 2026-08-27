@@ -18,9 +18,11 @@ async def test_pgvector_round_trip() -> None:
     await store.initialize()
 
     document_id = "integration-doc"
+    tenant_id = "tenant-a"
     chunks = [
         DocumentChunk(
             id="integration-chunk-1",
+            tenant_id=tenant_id,
             document_id=document_id,
             text="enterprise architecture",
             chunk_index=0,
@@ -29,6 +31,7 @@ async def test_pgvector_round_trip() -> None:
         ),
         DocumentChunk(
             id="integration-chunk-2",
+            tenant_id=tenant_id,
             document_id=document_id,
             text="database operations",
             chunk_index=1,
@@ -39,11 +42,15 @@ async def test_pgvector_round_trip() -> None:
 
     try:
         await store.upsert(chunks)
-        results = await store.search([0.95, 0.05, 0.0], top_k=1)
+        results = await store.search([0.95, 0.05, 0.0], top_k=1, tenant_id=tenant_id)
 
         assert len(results) == 1
         assert results[0].chunk.id == "integration-chunk-1"
+        assert results[0].chunk.tenant_id == tenant_id
         assert results[0].score > 0.9
+
+        isolated = await store.search([0.95, 0.05, 0.0], top_k=5, tenant_id="tenant-b")
+        assert isolated == []
     finally:
         async with store.pool.acquire() as connection:
             await connection.execute("DELETE FROM rag_chunks WHERE document_id = $1", document_id)
