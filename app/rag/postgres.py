@@ -6,17 +6,12 @@ It requires PostgreSQL with the pgvector extension and the asyncpg driver.
 
 from collections.abc import Sequence
 
-from app.rag.store import VectorStore
 from app.rag.models import DocumentChunk, SearchResult
+from app.rag.store import VectorStore
 
 
 class PostgresVectorStore(VectorStore):
-    """PostgreSQL vector store backed by pgvector.
-
-    The embedding dimension is configurable, but must match the embedding model
-    used by the application. The schema is created explicitly by the application
-    rather than relying on an ORM migration magic layer.
-    """
+    """PostgreSQL vector store backed by pgvector."""
 
     def __init__(self, database_url: str, dimensions: int) -> None:
         self.database_url = database_url
@@ -54,33 +49,32 @@ class PostgresVectorStore(VectorStore):
 
         import json
 
-        async with self.pool.acquire() as connection:
-            async with connection.transaction():
-                for chunk in chunks:
-                    if len(chunk.embedding) != self.dimensions:
-                        raise ValueError(
-                            f"Embedding dimension {len(chunk.embedding)} does not match "
-                            f"configured dimension {self.dimensions}"
-                        )
-                    await connection.execute(
-                        """
-                        INSERT INTO rag_chunks
-                            (id, document_id, chunk_index, text, metadata, embedding)
-                        VALUES ($1, $2, $3, $4, $5::jsonb, $6::vector)
-                        ON CONFLICT (id) DO UPDATE SET
-                            document_id = EXCLUDED.document_id,
-                            chunk_index = EXCLUDED.chunk_index,
-                            text = EXCLUDED.text,
-                            metadata = EXCLUDED.metadata,
-                            embedding = EXCLUDED.embedding
-                        """,
-                        chunk.id,
-                        chunk.document_id,
-                        chunk.chunk_index,
-                        chunk.text,
-                        json.dumps(chunk.metadata),
-                        _vector_literal(chunk.embedding),
+        async with self.pool.acquire() as connection, connection.transaction():
+            for chunk in chunks:
+                if len(chunk.embedding) != self.dimensions:
+                    raise ValueError(
+                        f"Embedding dimension {len(chunk.embedding)} does not match "
+                        f"configured dimension {self.dimensions}"
                     )
+                await connection.execute(
+                    """
+                    INSERT INTO rag_chunks
+                        (id, document_id, chunk_index, text, metadata, embedding)
+                    VALUES ($1, $2, $3, $4, $5::jsonb, $6::vector)
+                    ON CONFLICT (id) DO UPDATE SET
+                        document_id = EXCLUDED.document_id,
+                        chunk_index = EXCLUDED.chunk_index,
+                        text = EXCLUDED.text,
+                        metadata = EXCLUDED.metadata,
+                        embedding = EXCLUDED.embedding
+                    """,
+                    chunk.id,
+                    chunk.document_id,
+                    chunk.chunk_index,
+                    chunk.text,
+                    json.dumps(chunk.metadata),
+                    _vector_literal(chunk.embedding),
+                )
 
     async def search(self, embedding: Sequence[float], top_k: int = 5) -> list[SearchResult]:
         if top_k <= 0:
@@ -89,7 +83,8 @@ class PostgresVectorStore(VectorStore):
             raise RuntimeError("PostgresVectorStore.initialize() must be called first")
         if len(embedding) != self.dimensions:
             raise ValueError(
-                f"Embedding dimension {len(embedding)} does not match configured dimension {self.dimensions}"
+                f"Embedding dimension {len(embedding)} does not match configured dimension "
+                f"{self.dimensions}"
             )
 
         async with self.pool.acquire() as connection:
