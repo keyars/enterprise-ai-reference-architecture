@@ -4,6 +4,7 @@ This adapter keeps persistence concerns behind the VectorStore abstraction.
 It requires PostgreSQL with the pgvector extension and the asyncpg driver.
 """
 
+import json
 from collections.abc import Sequence
 
 from app.rag.models import DocumentChunk, SearchResult
@@ -51,16 +52,15 @@ class PostgresVectorStore(VectorStore):
             return
         if not hasattr(self, "pool"):
             raise RuntimeError("PostgresVectorStore.initialize() must be called first")
-
-        import json
+        for chunk in chunks:
+            if len(chunk.embedding) != self.dimensions:
+                raise ValueError(
+                    f"Embedding dimension {len(chunk.embedding)} does not match "
+                    f"configured dimension {self.dimensions}"
+                )
 
         async with self.pool.acquire() as connection, connection.transaction():
             for chunk in chunks:
-                if len(chunk.embedding) != self.dimensions:
-                    raise ValueError(
-                        f"Embedding dimension {len(chunk.embedding)} does not match "
-                        f"configured dimension {self.dimensions}"
-                    )
                 await connection.execute(
                     """
                     INSERT INTO rag_chunks
@@ -111,7 +111,7 @@ class PostgresVectorStore(VectorStore):
                     document_id=row["document_id"],
                     chunk_index=row["chunk_index"],
                     text=row["text"],
-                    metadata=dict(row["metadata"] or {}),
+                    metadata=_decode_metadata(row["metadata"]),
                 ),
                 score=float(row["score"]),
             )
@@ -121,6 +121,18 @@ class PostgresVectorStore(VectorStore):
     async def close(self) -> None:
         if hasattr(self, "pool"):
             await self.pool.close()
+
+
+def _decode_metadata(value: object) -> dict:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        parsed = json.loads(value)
+        if isinstance(parsed, dict):
+            return parsed
+    raise TypeError("Stored metadata must decode to a JSON object")
 
 
 def _vector_literal(values: Sequence[float]) -> str:
