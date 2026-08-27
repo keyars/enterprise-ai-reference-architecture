@@ -79,7 +79,7 @@ def _parse_arguments(arguments: str) -> dict[str, Any]:
 
     parsed = json.loads(arguments)
     if not isinstance(parsed, dict):
-        raise ValueError("Tool arguments must be a JSON object")
+        raise TypeError("Tool arguments must be a JSON object")
     return parsed
 
 

@@ -5,7 +5,6 @@ import pytest
 from app.rag.models import DocumentChunk
 from app.rag.postgres import PostgresVectorStore
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_INTEGRATION") != "1",
     reason="PostgreSQL integration tests require RUN_POSTGRES_INTEGRATION=1",

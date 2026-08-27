@@ -8,9 +8,9 @@ async def add_numbers(arguments: dict[str, Any]) -> str:
     left = arguments.get("left")
     right = arguments.get("right")
     if not isinstance(left, (int, float)) or isinstance(left, bool):
-        raise ValueError("left must be a number")
+        raise TypeError("left must be a number")
     if not isinstance(right, (int, float)) or isinstance(right, bool):
-        raise ValueError("right must be a number")
+        raise TypeError("right must be a number")
     return str(left + right)
 
 

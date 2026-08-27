@@ -1,7 +1,13 @@
 from time import perf_counter
 from typing import Any
 
-from app.ai.models import AgentRequest, AgentResponse, AgentTraceEntry, ToolCall, ToolCallingRequest
+from app.ai.models import (
+    AgentRequest,
+    AgentResponse,
+    AgentTraceEntry,
+    ToolCall,
+    ToolCallingRequest,
+)
 from app.ai.providers.base import ToolCallingProvider
 from app.ai.tools import ToolAuthorizationError, ToolNotFoundError, ToolRegistry
 
@@ -73,7 +79,7 @@ class AgentRuntime:
             output = await self.tools.execute(call.name, call.arguments, allowed)
         except (ToolAuthorizationError, ToolNotFoundError):
             raise
-        except Exception as exc:
+        except (ValueError, TypeError, KeyError, RuntimeError) as exc:
             output = f"Tool execution failed: {type(exc).__name__}"
         return _bounded_output(output)
 

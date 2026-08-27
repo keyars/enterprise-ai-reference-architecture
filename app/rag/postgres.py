@@ -11,7 +11,12 @@ from app.rag.store import VectorStore
 
 
 class PostgresVectorStore(VectorStore):
-    """PostgreSQL vector store backed by pgvector."""
+    """PostgreSQL vector store backed by pgvector.
+
+    The embedding dimension is configurable, but must match the embedding model
+    used by the application. The schema is created explicitly by the application
+    rather than relying on an ORM migration magic layer.
+    """
 
     def __init__(self, database_url: str, dimensions: int) -> None:
         self.database_url = database_url
@@ -83,8 +88,7 @@ class PostgresVectorStore(VectorStore):
             raise RuntimeError("PostgresVectorStore.initialize() must be called first")
         if len(embedding) != self.dimensions:
             raise ValueError(
-                f"Embedding dimension {len(embedding)} does not match configured dimension "
-                f"{self.dimensions}"
+                f"Embedding dimension {len(embedding)} does not match configured dimension {self.dimensions}"
             )
 
         async with self.pool.acquire() as connection:

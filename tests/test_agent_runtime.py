@@ -1,3 +1,4 @@
+from app.agents.runtime import AgentRuntime
 from app.ai.models import (
     AgentRequest,
     GenerationRequest,
@@ -8,7 +9,6 @@ from app.ai.models import (
 )
 from app.ai.providers.base import ToolCallingProvider
 from app.ai.tools import ToolArgumentError, ToolAuthorizationError, ToolRegistry
-from app.agents.runtime import AgentRuntime
 
 
 class FakeProvider(ToolCallingProvider):

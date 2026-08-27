@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 
-from app.ai.models import GenerationRequest, GenerationResponse, ToolCallingRequest, ToolCallingResponse
+from app.ai.models import (
+    GenerationRequest,
+    GenerationResponse,
+    ToolCallingRequest,
+    ToolCallingResponse,
+)
 
 
 class ModelProvider(ABC):
