@@ -1,28 +1,22 @@
-"""Provider-neutral contracts for AI generation."""
-
-from dataclasses import dataclass, field
-from typing import Any
+from pydantic import BaseModel, Field
 
 
-@dataclass(frozen=True)
-class GenerationRequest:
-    """Input contract shared by all model providers."""
-
-    messages: list[dict[str, str]]
+class GenerationRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=20_000)
     model: str | None = None
-    temperature: float = 0.2
-    max_tokens: int | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    max_tokens: int | None = Field(default=None, ge=1, le=32_000)
 
 
-@dataclass(frozen=True)
-class GenerationResponse:
-    """Normalized model response returned by the AI gateway."""
+class Usage(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
 
+
+class GenerationResponse(BaseModel):
     text: str
-    model: str
     provider: str
-    input_tokens: int | None = None
-    output_tokens: int | None = None
-    latency_ms: int | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    model: str
+    usage: Usage = Field(default_factory=Usage)
+    latency_ms: float | None = None

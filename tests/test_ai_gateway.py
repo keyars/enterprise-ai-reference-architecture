@@ -1,26 +1,17 @@
-import pytest
+from fastapi.testclient import TestClient
 
-from app.ai.gateway import AIGateway
-from app.ai.models import GenerationRequest
-from app.ai.providers import LocalEchoProvider
+from app.main import app
 
-
-@pytest.mark.anyio
-async def test_gateway_normalizes_provider_response() -> None:
-    gateway = AIGateway(LocalEchoProvider())
-
-    result = await gateway.generate(
-        GenerationRequest(messages=[{"role": "user", "content": "Hello enterprise AI"}])
-    )
-
-    assert result.provider == "local-echo"
-    assert result.model == "local-echo-v1"
-    assert result.text == "Echo: Hello enterprise AI"
+client = TestClient(app)
 
 
-@pytest.mark.anyio
-async def test_gateway_rejects_empty_messages() -> None:
-    gateway = AIGateway(LocalEchoProvider())
+def test_generate_uses_normalized_response_contract() -> None:
+    response = client.post("/ai/generate", json={"prompt": "Explain RAG in one sentence."})
 
-    with pytest.raises(ValueError, match="At least one message"):
-        await gateway.generate(GenerationRequest(messages=[]))
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "local"
+    assert payload["model"] == "local-deterministic"
+    assert payload["text"]
+    assert "usage" in payload
+    assert payload["latency_ms"] is not None

@@ -1,1 +1,1 @@
-"""AI application services and provider abstractions."""
+"""AI gateway and provider abstractions."""

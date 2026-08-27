@@ -1,21 +1,16 @@
-"""Provider-neutral AI gateway."""
+from dataclasses import dataclass
+from time import perf_counter
 
-from .models import GenerationRequest, GenerationResponse
-from .providers import ModelProvider
+from app.ai.models import GenerationRequest, GenerationResponse
+from app.ai.providers.base import ModelProvider
 
 
+@dataclass(slots=True)
 class AIGateway:
-    """Application-facing boundary that hides model-provider details."""
-
-    def __init__(self, provider: ModelProvider) -> None:
-        self._provider = provider
-
-    @property
-    def provider_name(self) -> str:
-        return self._provider.name
+    provider: ModelProvider
 
     async def generate(self, request: GenerationRequest) -> GenerationResponse:
-        """Generate text through the configured provider."""
-        if not request.messages:
-            raise ValueError("At least one message is required.")
-        return await self._provider.generate(request)
+        started = perf_counter()
+        response = await self.provider.generate(request)
+        latency_ms = round((perf_counter() - started) * 1000, 2)
+        return response.model_copy(update={"latency_ms": latency_ms})

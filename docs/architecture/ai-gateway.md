@@ -1,40 +1,19 @@
 # AI Gateway
 
-## Decision
-
-The application communicates with models through a provider-neutral `AIGateway` rather than importing a vendor SDK throughout the business logic.
-
-```text
-Application
-    |
-    v
- AIGateway
-    |
-    v
-ModelProvider interface
-    |
- +--+----------------+
- |                   |
-LocalEcho        OpenAI adapter
-provider         (next milestone)
-```
-
-## Why
-
-Direct model-provider calls scattered through an enterprise codebase create coupling to vendor-specific request formats, error models and configuration. A gateway creates a stable application boundary and lets provider adapters evolve independently.
-
-## Current implementation
-
-V0.2 includes a deterministic local provider. It intentionally requires no API key and is suitable for unit tests and architecture validation.
-
-The next provider implementation will add a real OpenAI adapter while preserving the same application-facing contract.
+The AI Gateway is the provider-neutral boundary between application services and model providers.
 
 ## Contract
 
-`GenerationRequest` contains messages and model-generation controls. `GenerationResponse` normalizes provider, model, token and latency metadata where available.
+`ModelProvider` defines the asynchronous `generate()` operation. Providers return the common `GenerationResponse` contract, which keeps provider-specific SDK response shapes out of the application layer.
 
-The gateway is asynchronous and validates that at least one message is supplied before delegating to the configured provider.
+## Current provider
 
-## Non-goals
+V0.2 includes a deterministic local provider so the architecture and tests can run without credentials or network access.
 
-The gateway is not an agent orchestrator, RAG engine or prompt-management system. Those capabilities will sit above or beside this boundary in later milestones.
+## Next provider
+
+V0.3 will add a real OpenAI adapter behind the same interface. Provider credentials will remain environment-only and will never be committed to source control.
+
+## Why this boundary matters
+
+The gateway provides a stable place for model routing, timeout policy, retries, usage accounting, observability and provider failover as the platform evolves.
