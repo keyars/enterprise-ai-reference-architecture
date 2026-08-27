@@ -17,14 +17,19 @@ class RAGService:
     async def ingest(self, document: Document) -> int:
         chunks = chunk_document(document)
         vectors = await self.embeddings.embed([chunk.text for chunk in chunks])
-        enriched = [chunk.model_copy(update={"embedding": vector}) for chunk, vector in zip(chunks, vectors, strict=True)]
+        enriched = [
+            chunk.model_copy(update={"embedding": vector})
+            for chunk, vector in zip(chunks, vectors, strict=True)
+        ]
         await self.store.upsert(enriched)
         return len(enriched)
 
-    async def query(self, request: RAGQuery) -> RAGResponse:
+    async def query(self, request: RAGQuery, tenant_id: str) -> RAGResponse:
+        if not tenant_id:
+            raise ValueError("tenant_id is required")
         started = perf_counter()
         [question_embedding] = await self.embeddings.embed([request.question])
-        sources = await self.store.search(question_embedding, request.top_k)
+        sources = await self.store.search(question_embedding, request.top_k, tenant_id=tenant_id)
 
         context = "\n\n".join(
             f"[Source {index}: {result.chunk.metadata.get('title', result.chunk.document_id)}] {result.chunk.text}"
