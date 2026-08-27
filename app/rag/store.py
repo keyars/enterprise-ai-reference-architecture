@@ -19,7 +19,12 @@ class VectorStore:
     async def upsert(self, chunks: Sequence[DocumentChunk]) -> None:
         raise NotImplementedError
 
-    async def search(self, embedding: Sequence[float], top_k: int = 5) -> list[SearchResult]:
+    async def search(
+        self,
+        embedding: Sequence[float],
+        top_k: int = 5,
+        tenant_id: str | None = None,
+    ) -> list[SearchResult]:
         raise NotImplementedError
 
 
@@ -35,12 +40,20 @@ class InMemoryVectorStore(VectorStore):
                 raise ValueError(f"Chunk {chunk.id} has no embedding")
             self._chunks[chunk.id] = chunk
 
-    async def search(self, embedding: Sequence[float], top_k: int = 5) -> list[SearchResult]:
+    async def search(
+        self,
+        embedding: Sequence[float],
+        top_k: int = 5,
+        tenant_id: str | None = None,
+    ) -> list[SearchResult]:
         if top_k <= 0:
             return []
+        if not tenant_id:
+            raise ValueError("tenant_id is required for vector search")
         ranked = [
             SearchResult(chunk=chunk, score=cosine_similarity(embedding, chunk.embedding))
             for chunk in self._chunks.values()
+            if chunk.tenant_id == tenant_id
         ]
         ranked.sort(key=lambda result: result.score, reverse=True)
         return ranked[:top_k]
