@@ -1,8 +1,4 @@
-"""Persistent PostgreSQL/pgvector store.
-
-This adapter keeps persistence concerns behind the VectorStore abstraction.
-It requires PostgreSQL with the pgvector extension and the asyncpg driver.
-"""
+"""Persistent PostgreSQL/pgvector store with tenant isolation."""
 
 import json
 from collections.abc import Sequence
@@ -12,12 +8,7 @@ from app.rag.store import VectorStore
 
 
 class PostgresVectorStore(VectorStore):
-    """PostgreSQL vector store backed by pgvector.
-
-    The embedding dimension is configurable, but must match the embedding model
-    used by the application. The schema is created explicitly by the application
-    rather than relying on an ORM migration magic layer.
-    """
+    """PostgreSQL vector store backed by pgvector and tenant-scoped queries."""
 
     def __init__(self, database_url: str, dimensions: int) -> None:
         self.database_url = database_url
@@ -33,18 +24,23 @@ class PostgresVectorStore(VectorStore):
                 f"""
                 CREATE TABLE IF NOT EXISTS rag_chunks (
                     id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
                     document_id TEXT NOT NULL,
                     chunk_index INTEGER NOT NULL,
                     text TEXT NOT NULL,
                     metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb,
                     embedding vector({self.dimensions}) NOT NULL,
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                    UNIQUE(document_id, chunk_index)
+                    UNIQUE(tenant_id, document_id, chunk_index)
                 )
                 """
             )
             await connection.execute(
-                "CREATE INDEX IF NOT EXISTS rag_chunks_document_idx ON rag_chunks(document_id)"
+                "ALTER TABLE rag_chunks ADD COLUMN IF NOT EXISTS tenant_id TEXT"
+            )
+            await connection.execute(
+                "CREATE INDEX IF NOT EXISTS rag_chunks_tenant_document_idx "
+                "ON rag_chunks(tenant_id, document_id)"
             )
 
     async def upsert(self, chunks: Sequence[DocumentChunk]) -> None:
@@ -64,9 +60,10 @@ class PostgresVectorStore(VectorStore):
                 await connection.execute(
                     """
                     INSERT INTO rag_chunks
-                        (id, document_id, chunk_index, text, metadata, embedding)
-                    VALUES ($1, $2, $3, $4, $5::jsonb, $6::vector)
+                        (id, tenant_id, document_id, chunk_index, text, metadata, embedding)
+                    VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::vector)
                     ON CONFLICT (id) DO UPDATE SET
+                        tenant_id = EXCLUDED.tenant_id,
                         document_id = EXCLUDED.document_id,
                         chunk_index = EXCLUDED.chunk_index,
                         text = EXCLUDED.text,
@@ -74,6 +71,7 @@ class PostgresVectorStore(VectorStore):
                         embedding = EXCLUDED.embedding
                     """,
                     chunk.id,
+                    chunk.tenant_id,
                     chunk.document_id,
                     chunk.chunk_index,
                     chunk.text,
@@ -81,9 +79,16 @@ class PostgresVectorStore(VectorStore):
                     _vector_literal(chunk.embedding),
                 )
 
-    async def search(self, embedding: Sequence[float], top_k: int = 5) -> list[SearchResult]:
+    async def search(
+        self,
+        embedding: Sequence[float],
+        top_k: int = 5,
+        tenant_id: str | None = None,
+    ) -> list[SearchResult]:
         if top_k <= 0:
             return []
+        if not tenant_id:
+            raise ValueError("tenant_id is required for vector search")
         if not hasattr(self, "pool"):
             raise RuntimeError("PostgresVectorStore.initialize() must be called first")
         if len(embedding) != self.dimensions:
@@ -94,13 +99,15 @@ class PostgresVectorStore(VectorStore):
         async with self.pool.acquire() as connection:
             rows = await connection.fetch(
                 """
-                SELECT id, document_id, chunk_index, text, metadata,
+                SELECT id, tenant_id, document_id, chunk_index, text, metadata,
                        1 - (embedding <=> $1::vector) AS score
                 FROM rag_chunks
+                WHERE tenant_id = $2
                 ORDER BY embedding <=> $1::vector
-                LIMIT $2
+                LIMIT $3
                 """,
                 _vector_literal(embedding),
+                tenant_id,
                 top_k,
             )
 
@@ -108,6 +115,7 @@ class PostgresVectorStore(VectorStore):
             SearchResult(
                 chunk=DocumentChunk(
                     id=row["id"],
+                    tenant_id=row["tenant_id"],
                     document_id=row["document_id"],
                     chunk_index=row["chunk_index"],
                     text=row["text"],
