@@ -38,9 +38,10 @@ def chunk_document(document: Document, max_characters: int = 1_200, overlap: int
                 DocumentChunk(
                     id=f"{document.id}:{index}",
                     document_id=document.id,
-                    text=chunk_text,
                     chunk_index=index,
+                    text=chunk_text,
                     metadata={"title": document.title, **document.metadata},
+                    tenant_id=document.tenant_id,
                 )
             )
             index += 1
