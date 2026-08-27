@@ -20,7 +20,7 @@ async def test_postgres_store_requires_initialization() -> None:
 
 
 @pytest.mark.asyncio
-async def test_postgres_store_validates_dimensions() -> None:
+async def test_postgres_store_validates_dimensions_before_database_access() -> None:
     store = PostgresVectorStore("postgresql://example", dimensions=3)
     store.pool = object()
 
