@@ -1,13 +1,17 @@
 from fastapi import FastAPI
 
+from app.api.ai import router as ai_router
+
 app = FastAPI(
     title="Enterprise AI Reference Architecture",
     description=(
         "A production-oriented reference implementation for enterprise AI "
         "applications using LLMs, RAG, agents, tools, security and observability."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
+
+app.include_router(ai_router)
 
 
 @app.get("/health", tags=["System"])
@@ -20,7 +24,7 @@ async def health() -> dict[str, str]:
 async def architecture() -> dict[str, object]:
     """Expose the architectural capabilities planned for the reference implementation."""
     return {
-        "version": "0.1.0",
+        "version": "0.2.0",
         "principles": [
             "provider-neutral",
             "security-by-design",
