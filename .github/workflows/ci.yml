@@ -8,6 +8,21 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: enterprise_ai
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d enterprise_ai"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,10 +33,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,postgres]"
 
       - name: Lint
         run: ruff check .
 
       - name: Test
+        env:
+          RUN_POSTGRES_INTEGRATION: "1"
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/enterprise_ai
         run: pytest
