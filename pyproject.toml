@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "enterprise-ai-reference-architecture"
-version = "0.3.0"
+version = "0.4.0"
 description = "Production-oriented reference architecture for enterprise AI applications."
 readme = "README.md"
 requires-python = ">=3.12"
