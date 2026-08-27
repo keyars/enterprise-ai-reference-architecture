@@ -8,7 +8,7 @@ class LocalProvider(ModelProvider):
     async def generate(self, request: GenerationRequest) -> GenerationResponse:
         model = request.model or "local-deterministic"
         return GenerationResponse(
-            text=f"Local provider response for: {request.prompt}",
+            text=f"Local provider response: {request.prompt}",
             provider=self.name,
             model=model,
         )
