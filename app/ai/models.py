@@ -3,6 +3,36 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class Usage(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
+class GenerationRequest(BaseModel):
+    prompt: str | None = Field(default=None, min_length=1, max_length=20_000)
+    messages: list[dict[str, Any]] = Field(default_factory=list)
+    model: str | None = None
+    temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    max_tokens: int | None = Field(default=None, ge=1, le=32_000)
+
+    def __init__(self, **data: Any) -> None:
+        if data.get("prompt") is None and data.get("messages"):
+            user_messages = [m.get("content") for m in data["messages"] if m.get("role") == "user"]
+            if user_messages and isinstance(user_messages[-1], str):
+                data["prompt"] = user_messages[-1]
+        super().__init__(**data)
+
+
+class GenerationResponse(BaseModel):
+    text: str
+    provider: str
+    model: str
+    usage: Usage = Field(default_factory=Usage)
+    latency_ms: float | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class ToolDefinition(BaseModel):
     name: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
     description: str = Field(min_length=1, max_length=2_000)
