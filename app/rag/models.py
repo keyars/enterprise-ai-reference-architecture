@@ -6,6 +6,7 @@ class Document(BaseModel):
     title: str
     content: str = Field(min_length=1)
     metadata: dict[str, str] = Field(default_factory=dict)
+    tenant_id: str = Field(min_length=1, max_length=128)
 
 
 class DocumentChunk(BaseModel):
@@ -15,6 +16,7 @@ class DocumentChunk(BaseModel):
     chunk_index: int
     metadata: dict[str, str] = Field(default_factory=dict)
     embedding: list[float] = Field(default_factory=list)
+    tenant_id: str = Field(min_length=1, max_length=128)
 
 
 class SearchResult(BaseModel):
