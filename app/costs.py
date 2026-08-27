@@ -1,4 +1,8 @@
-"""Provider usage and configurable cost estimation."""
+"""Provider usage and caller-supplied cost estimation.
+
+Prices intentionally are not hard-coded because provider pricing changes.
+Production deployments should load an approved pricing catalogue/configuration.
+"""
 
 from dataclasses import dataclass
 
@@ -9,16 +13,13 @@ class ModelPricing:
     output_per_million: float
 
 
-PRICING: dict[str, ModelPricing] = {
-    "gpt-5.5": ModelPricing(1.25, 10.0),
-    "text-embedding-3-small": ModelPricing(0.02, 0.0),
-}
-
-
-def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float | None:
-    pricing = PRICING.get(model)
-    if pricing is None:
-        return None
+def estimate_cost(
+    pricing: ModelPricing,
+    input_tokens: int,
+    output_tokens: int,
+) -> float:
+    if input_tokens < 0 or output_tokens < 0:
+        raise ValueError("Token counts cannot be negative")
     return round(
         input_tokens / 1_000_000 * pricing.input_per_million
         + output_tokens / 1_000_000 * pricing.output_per_million,
