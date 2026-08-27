@@ -36,6 +36,12 @@ def test_rag_ingest_rejects_cross_tenant_document() -> None:
     assert response.status_code == 403
 
 
-def test_rag_query_requires_authenticated_tenant_context() -> None:
-    response = client.post("/rag/query", json={"question": "hello"})
-    assert response.status_code == 502
+def test_rag_query_uses_authenticated_tenant_context() -> None:
+    response = client.post(
+        "/rag/query",
+        headers={"X-Tenant-ID": "tenant-a"},
+        json={"question": "hello"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["sources"] == []
