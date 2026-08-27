@@ -8,7 +8,7 @@ app = FastAPI(
         "A production-oriented reference implementation for enterprise AI "
         "applications using LLMs, RAG, agents, tools, security and observability."
     ),
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.include_router(ai_router)
@@ -24,7 +24,7 @@ async def health() -> dict[str, str]:
 async def architecture() -> dict[str, object]:
     """Expose the architectural capabilities planned for the reference implementation."""
     return {
-        "version": "0.2.0",
+        "version": "0.3.0",
         "principles": [
             "provider-neutral",
             "security-by-design",
@@ -35,6 +35,7 @@ async def architecture() -> dict[str, object]:
         ],
         "capabilities": [
             "llm-gateway",
+            "openai-provider",
             "retrieval-augmented-generation",
             "ai-agents",
             "tool-calling",
