@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "enterprise-ai-reference-architecture"
+version = "0.1.0"
+description = "Production-oriented reference architecture for enterprise AI applications."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Keyar Srinivasan" }]
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "uvicorn[standard]>=0.35,<1.0",
+  "pydantic-settings>=2.10,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4,<9.0",
+  "httpx>=0.28,<1.0",
+  "ruff>=0.12,<1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+autopep8 = false
