@@ -1,8 +1,9 @@
 # Enterprise AI Reference Architecture
 
-[![Status](https://img.shields.io/badge/status-architecture%20%26%20MVP-111827?style=for-the-badge)](https://github.com/keyars/enterprise-ai-reference-architecture)
+[![Status](https://img.shields.io/badge/status-V0.3%20%7C%20LLM%20Provider-111827?style=for-the-badge)](https://github.com/keyars/enterprise-ai-reference-architecture)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-Responses%20API-412991?style=for-the-badge&logo=openai&logoColor=white)](https://platform.openai.com/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge)](LICENSE)
 
 > **A production-oriented reference architecture for building secure, scalable, observable and cost-aware Enterprise AI applications with LLMs, Retrieval-Augmented Generation (RAG), AI Agents and enterprise data.**
@@ -59,53 +60,94 @@ This project provides a **working reference implementation** together with archi
                  PostgreSQL · pgvector · Redis · Object Storage
 ```
 
-## V1 scope
+## Current implementation
 
-The first milestone deliberately focuses on a small, executable vertical slice:
+### V0.1 — Architecture foundation
 
-- FastAPI service with health and architecture endpoints
-- Configuration through environment variables
-- Provider-neutral AI gateway boundary
-- Clear separation between API, application and infrastructure concerns
-- Testable foundation for RAG, agents, tools and observability
-- Docker-ready local development
-- Architecture documentation and ADRs
+- FastAPI service
+- Health endpoint
+- Architecture metadata endpoint
+- Configuration foundation
+- Testable project structure
 
-The following capabilities will be introduced incrementally rather than mocked prematurely:
+### V0.2 — Provider-neutral AI Gateway
 
-1. LLM gateway
-2. Document ingestion and RAG
-3. Agent runtime and tool calling
-4. Conversation and semantic memory
-5. Authentication, RBAC and tenant isolation
-6. AI observability and tracing
-7. Evaluation datasets and automated quality checks
-8. Cost accounting
-9. AWS deployment reference
+- `ModelProvider` abstraction
+- Normalized generation request/response contracts
+- Deterministic local provider
+- AI gateway latency measurement
+- Automated gateway tests
 
-## Repository structure
+### V0.3 — OpenAI Provider
+
+The gateway now supports a real OpenAI adapter while preserving the provider-neutral application boundary.
 
 ```text
-enterprise-ai-reference-architecture/
-├── app/
-│   ├── api/
-│   ├── core/
-│   ├── domain/
-│   ├── infrastructure/
-│   └── main.py
-├── docs/
-│   ├── architecture/
-│   ├── adr/
-│   ├── product-specification.md
-│   └── roadmap.md
-├── tests/
-├── .env.example
-├── .gitignore
-├── Dockerfile
-├── pyproject.toml
-├── LICENSE
-└── README.md
+Application
+     │
+     ▼
+ AI Gateway
+     │
+     ▼
+ModelProvider
+     │
+     ├───────────────┐
+     ▼               ▼
+ Local           OpenAI
+ Provider        Provider
 ```
+
+When `OPENAI_API_KEY` is configured, `/ai/generate` uses the OpenAI provider. Without credentials, the same endpoint remains runnable through the deterministic local provider.
+
+The OpenAI adapter uses the official Python SDK and the Responses API, and normalizes model output and token usage into the repository's internal response contract. citeturn0search7turn0search10
+
+## API
+
+### Generate
+
+```http
+POST /ai/generate
+Content-Type: application/json
+```
+
+Example:
+
+```json
+{
+  "prompt": "Explain Retrieval-Augmented Generation in one paragraph.",
+  "temperature": 0.2
+}
+```
+
+The response is normalized regardless of the underlying provider:
+
+```json
+{
+  "text": "...",
+  "provider": "openai",
+  "model": "gpt-5.5",
+  "usage": {
+    "input_tokens": 42,
+    "output_tokens": 96,
+    "total_tokens": 138
+  },
+  "latency_ms": 742.31
+}
+```
+
+## Configuration
+
+Copy `.env.example` to `.env` and provide an API key only when you want to use the OpenAI provider.
+
+```text
+OPENAI_API_KEY=your-key-here
+OPENAI_MODEL=gpt-5.5
+OPENAI_TIMEOUT_SECONDS=30
+```
+
+**Never commit `.env` or API credentials to source control.**
+
+The repository deliberately keeps provider configuration outside application business logic.
 
 ## Getting started
 
@@ -113,7 +155,7 @@ enterprise-ai-reference-architecture/
 
 - Python 3.12+
 - Git
-- Docker (recommended for later milestones)
+- An OpenAI API key for real model execution (optional; local provider works without one)
 
 ### Run locally
 
@@ -136,6 +178,43 @@ Open `http://127.0.0.1:8000/docs` for the interactive API documentation.
 pytest
 ```
 
+The OpenAI provider test uses a mocked SDK response, so tests do not require network access or an API key.
+
+## V1 roadmap
+
+1. **V0.4 — Enterprise RAG**
+   - document ingestion
+   - parsing and chunking
+   - embeddings
+   - PostgreSQL + pgvector
+   - retrieval pipeline
+   - source citations
+
+2. **V0.5 — Agent Runtime**
+   - tool contracts
+   - planning
+   - controlled tool execution
+   - agent state
+   - workflow boundaries
+
+3. **V0.6 — Observability & Evaluation**
+   - tracing
+   - token/cost accounting
+   - evaluation datasets
+   - retrieval and answer quality metrics
+
+4. **V0.7 — Security & Multi-tenancy**
+   - authentication
+   - RBAC
+   - tenant isolation
+   - prompt/data security
+
+5. **V1.0 — Production Reference Architecture**
+   - Docker deployment
+   - AWS reference architecture
+   - operational guidance
+   - production readiness checklist
+
 ## Design principles
 
 - **Provider-neutral:** application code should not be tightly coupled to one model vendor.
@@ -146,16 +225,50 @@ pytest
 - **Incremental complexity:** introduce agents, distributed services and infrastructure only when the use case requires them.
 - **Production over demo:** every major capability should have a path from local development to production deployment.
 
+## Repository structure
+
+```text
+enterprise-ai-reference-architecture/
+├── app/
+│   ├── ai/
+│   │   ├── gateway.py
+│   │   ├── models.py
+│   │   └── providers/
+│   │       ├── base.py
+│   │       ├── local.py
+│   │       └── openai.py
+│   ├── api/
+│   │   └── ai.py
+│   ├── core/
+│   │   └── config.py
+│   └── main.py
+├── docs/
+│   ├── architecture/
+│   ├── adr/
+│   ├── product-specification.md
+│   └── roadmap.md
+├── tests/
+│   ├── test_ai_gateway.py
+│   └── test_openai_provider.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── pyproject.toml
+├── LICENSE
+└── README.md
+```
+
 ## Documentation
 
 - [Product Specification](docs/product-specification.md)
+- [AI Gateway Architecture](docs/architecture/ai-gateway.md)
 - [Architecture](docs/architecture/README.md)
 - [Roadmap](docs/roadmap.md)
 - Architecture Decision Records will live under `docs/adr/`.
 
 ## Status
 
-**Current milestone: V0.1 — executable architecture foundation.**
+**Current milestone: V0.3 — production LLM provider integration.**
 
 This repository is intentionally being built in public, with each milestone adding a working capability and the corresponding architecture documentation.
 
