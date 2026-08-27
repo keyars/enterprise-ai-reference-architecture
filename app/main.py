@@ -9,7 +9,7 @@ app = FastAPI(
         "A production-oriented reference implementation for enterprise AI "
         "applications using LLMs, RAG, agents, tools, security and observability."
     ),
-    version="0.4.0",
+    version="0.5.1",
 )
 
 app.include_router(ai_router)
@@ -26,7 +26,7 @@ async def health() -> dict[str, str]:
 async def architecture() -> dict[str, object]:
     """Expose the architectural capabilities of the reference implementation."""
     return {
-        "version": "0.4.0",
+        "version": "0.5.1",
         "principles": [
             "provider-neutral",
             "security-by-design",
@@ -42,6 +42,7 @@ async def architecture() -> dict[str, object]:
             "embeddings",
             "semantic-retrieval",
             "retrieval-augmented-generation",
+            "postgresql-pgvector",
             "ai-agents",
             "tool-calling",
             "memory",
