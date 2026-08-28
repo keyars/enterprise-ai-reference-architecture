@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from app.agents.api import router as agents_router
 from app.api.ai import router as ai_router
 from app.api.rag import router as rag_router
+from app.audit import record_event, snapshot as audit_snapshot
 from app.observability import metrics, start_request
 
 app = FastAPI(
@@ -23,10 +24,16 @@ async def observability_middleware(request: Request, call_next):
         response = await call_next(request)
         failed = response.status_code >= 500
         metrics.record_request(request.url.path, telemetry.latency_ms, failed)
+        record_event(
+            "HTTP_REQUEST",
+            "failure" if failed else "success",
+            resource=request.url.path,
+        )
         response.headers["X-Request-ID"] = telemetry.request_id
         return response
     except Exception:
         metrics.record_request(request.url.path, telemetry.latency_ms, True)
+        record_event("HTTP_REQUEST", "error", resource=request.url.path)
         raise
 
 
@@ -45,6 +52,12 @@ async def health() -> dict[str, str]:
 async def metrics_endpoint() -> JSONResponse:
     """Return non-sensitive process-local operational counters."""
     return JSONResponse(metrics.snapshot())
+
+
+@app.get("/audit", tags=["System"])
+async def audit_endpoint() -> JSONResponse:
+    """Return bounded audit metadata without request bodies or credentials."""
+    return JSONResponse(audit_snapshot())
 
 
 @app.get("/architecture", tags=["System"])
@@ -71,5 +84,6 @@ async def architecture() -> dict[str, object]:
             "controlled-tool-calling",
             "request-tracing",
             "llm-usage-telemetry",
+            "audit-events",
         ],
     }
