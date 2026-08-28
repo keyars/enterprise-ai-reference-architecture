@@ -49,7 +49,12 @@ def _load_credentials() -> tuple[ApiCredential, ...]:
 
     legacy = os.getenv("AUTH_API_KEYS", os.getenv("AUTH_API_KEY", ""))
     return tuple(
-        ApiCredential(secret=k.strip(), subject=hashlib.sha256(k.strip().encode()).hexdigest()[:16], tenant_id="local", roles=frozenset({"user"}))
+        ApiCredential(
+            secret=k.strip(),
+            subject=hashlib.sha256(k.strip().encode()).hexdigest()[:16],
+            tenant_id="local",
+            roles=frozenset({"user"}),
+        )
         for k in legacy.split(",")
         if k.strip()
     )
