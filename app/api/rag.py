@@ -35,7 +35,7 @@ def create_rag_service() -> RAGService:
 @router.post("/documents", status_code=201)
 async def ingest_document(
     document: Document,
-    principal: Principal = Depends(require_roles("admin", "user")),
+    principal: Principal = Depends(require_roles("admin", "user")),  # noqa: B008
 ) -> dict[str, object]:
     """Chunk and index a document within the authenticated tenant."""
     if document.tenant_id != principal.tenant_id:
@@ -50,7 +50,7 @@ async def ingest_document(
 @router.post("/query", response_model=RAGResponse)
 async def query_rag(
     request: RAGQuery,
-    principal: Principal = Depends(require_roles("admin", "user")),
+    principal: Principal = Depends(require_roles("admin", "user")),  # noqa: B008
 ) -> RAGResponse:
     """Retrieve relevant document chunks only from the authenticated tenant."""
     try:
