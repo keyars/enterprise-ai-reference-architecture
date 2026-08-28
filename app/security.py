@@ -1,10 +1,10 @@
 """Application authentication, authorization and AI safety policies."""
 
+from dataclasses import dataclass
 import hashlib
 import hmac
 import os
 import re
-from dataclasses import dataclass
 
 from fastapi import Header, HTTPException
 
