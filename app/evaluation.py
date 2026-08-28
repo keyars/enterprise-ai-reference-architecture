@@ -17,6 +17,11 @@ class EvaluationResult:
     matched: tuple[str, ...]
     missing: tuple[str, ...]
 
+    @property
+    def score(self) -> float:
+        total = len(self.matched) + len(self.missing)
+        return len(self.matched) / total if total else 1.0
+
 
 def evaluate_answer(case: EvaluationCase, answer: str) -> EvaluationResult:
     normalized = answer.casefold()
@@ -27,6 +32,12 @@ def evaluate_answer(case: EvaluationCase, answer: str) -> EvaluationResult:
 
 def evaluate_suite(cases: list[EvaluationCase], answers: dict[str, str]) -> list[EvaluationResult]:
     return [evaluate_answer(case, answers.get(case.name, "")) for case in cases]
+
+
+def suite_pass_rate(results: list[EvaluationResult]) -> float:
+    if not results:
+        return 1.0
+    return sum(result.passed for result in results) / len(results)
 
 
 DEFAULT_CASES = [
