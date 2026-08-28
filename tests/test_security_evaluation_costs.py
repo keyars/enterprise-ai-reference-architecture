@@ -1,6 +1,9 @@
+import pytest
+from fastapi import HTTPException
+
 from app.costs import ModelPricing, estimate_cost
 from app.evaluation import EvaluationCase, evaluate_answer, evaluate_suite, suite_pass_rate
-from app.security import detect_prompt_injection, redact_sensitive_data
+from app.security import authenticate, detect_prompt_injection, redact_sensitive_data
 
 
 def test_cost_estimation_uses_explicit_rates() -> None:
@@ -8,12 +11,8 @@ def test_cost_estimation_uses_explicit_rates() -> None:
 
 
 def test_cost_rejects_negative_tokens() -> None:
-    try:
+    with pytest.raises(ValueError):
         estimate_cost(ModelPricing(1.0, 2.0), -1, 0)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("Negative token counts must fail")
 
 
 def test_evaluation_detects_missing_expected_content() -> None:
@@ -50,3 +49,36 @@ def test_sensitive_data_redaction() -> None:
     assert "user@example.com" not in redacted
     assert "9876543210" not in redacted
     assert "ABCDE1234F" not in redacted
+
+
+def test_authentication_disabled_is_explicit_local_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+    principal = authenticate(None, "tenant-a")
+    assert principal.subject == "local-development"
+    assert principal.tenant_id == "tenant-a"
+    assert "admin" in principal.roles
+
+
+def test_explicit_credential_binds_identity_and_tenant(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("AUTH_CREDENTIALS", "secret-a:alice:tenant-a:admin,user")
+    principal = authenticate("secret-a", "tenant-a")
+    assert principal.subject == "alice"
+    assert principal.tenant_id == "tenant-a"
+    assert principal.roles == frozenset({"admin", "user"})
+
+
+def test_wrong_tenant_is_forbidden(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("AUTH_CREDENTIALS", "secret-a:alice:tenant-a:user")
+    with pytest.raises(HTTPException) as error:
+        authenticate("secret-a", "tenant-b")
+    assert error.value.status_code == 403
+
+
+def test_invalid_credential_is_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("AUTH_CREDENTIALS", "secret-a:alice:tenant-a:user")
+    with pytest.raises(HTTPException) as error:
+        authenticate("wrong", "tenant-a")
+    assert error.value.status_code == 401
