@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.agents.api import router as agents_router
-from app.ai.gateway import AIGateway
 from app.api.ai import router as ai_router
 from app.api.rag import router as rag_router
 from app.observability import metrics, start_request
