@@ -42,26 +42,88 @@
 
 ## V0.5 — Observability & Evaluation
 
-- [ ] Request tracing
-- [ ] LLM usage telemetry
-- [ ] Token and cost accounting
+### Observability — implemented
+
+- [x] Request correlation IDs via `X-Request-ID`
+- [x] Process-local request counters
+- [x] Route-level request counts
+- [x] LLM request counters
+- [x] Input/output token totals from normalized provider usage
+- [x] Request and LLM latency totals
+- [x] Provider-level LLM counters
+- [x] Non-sensitive `/metrics` endpoint
+
+### Evaluation — remaining
+
 - [ ] Evaluation datasets
+- [ ] Retrieval evaluation
 - [ ] Automated quality checks
+
+### Cost intelligence — remaining
+
+- [x] Explicit pricing model and deterministic cost calculation utility
+- [ ] Versioned provider pricing catalogue
+- [ ] Cost aggregation by tenant/model/request
+- [ ] Budget and anomaly controls
 
 ## V0.6 — Security & Multi-tenancy
 
-- [ ] Authentication
-- [ ] RBAC
-- [ ] Tenant isolation
-- [ ] Prompt-injection protections
-- [ ] Sensitive-data controls
+### Reference controls — implemented
+
+- [x] API-key authentication mode
+- [x] Role-based endpoint authorization
+- [x] Tenant identifier validation
+- [x] Tenant-scoped in-memory retrieval
+- [x] Tenant-scoped PostgreSQL/pgvector retrieval
+- [x] Cross-tenant ingestion rejection
+- [x] Prompt-injection detection utility
+- [x] Sensitive-data redaction utility
+
+### Production hardening — remaining
+
+- [ ] External identity provider integration
+- [ ] Persistent RBAC/permission model
+- [ ] Database-level row-level security strategy
+- [ ] Secret-manager integration
+- [ ] Comprehensive audit logging
+- [ ] Robust prompt-injection defense and adversarial evaluation
+- [ ] DLP policy engine
+- [ ] Security review checklist
+
+## V0.7 — Production Integration
+
+- [ ] Integrated reference application
+- [ ] Persistent service lifecycle and startup/shutdown management
+- [ ] Centralized structured logging
+- [ ] Distributed tracing/exporter integration
+- [ ] Resilience policies and error taxonomy
+- [ ] Background ingestion pipeline
+- [ ] API contract/versioning strategy
+
+## V0.8 — Deployment Reference
+
+- [ ] Production Docker image hardening
+- [ ] AWS deployment reference
+- [ ] Secrets and configuration deployment pattern
+- [ ] Database migration strategy
+- [ ] Health/readiness probes
+- [ ] Performance and reliability guidance
 
 ## V1.0 — Production Reference
 
-- [ ] Integrated reference application
 - [ ] Complete architecture documentation
-- [ ] Docker Compose environment
-- [ ] CI/CD
-- [ ] AWS deployment reference
-- [ ] Security review checklist
-- [ ] Performance and reliability guidance
+- [ ] End-to-end reference application
+- [ ] CI/CD pipeline
+- [ ] Security review and threat model
+- [ ] Evaluation suite with representative datasets
+- [ ] Operational runbook
+- [ ] Performance baseline
+- [ ] Disaster recovery guidance
+
+## Verification policy
+
+A milestone is only considered **runtime verified** when the relevant automated tests or deployment checks have actually executed successfully.
+
+> **Implemented ≠ Runtime Verified ≠ Production Ready**
+
+This distinction is intentionally maintained throughout the project.
