@@ -1,5 +1,5 @@
 from app.costs import ModelPricing, estimate_cost
-from app.evaluation import EvaluationCase, evaluate_answer
+from app.evaluation import EvaluationCase, evaluate_answer, evaluate_suite, suite_pass_rate
 from app.security import detect_prompt_injection, redact_sensitive_data
 
 
@@ -21,6 +21,22 @@ def test_evaluation_detects_missing_expected_content() -> None:
     result = evaluate_answer(case, "This is grounded in a source")
     assert result.passed
     assert result.missing == ()
+    assert result.score == 1.0
+
+
+def test_evaluation_score_and_suite_rate() -> None:
+    cases = [
+        EvaluationCase("complete", "q1", ("alpha", "beta")),
+        EvaluationCase("partial", "q2", ("alpha", "beta")),
+    ]
+    results = evaluate_suite(cases, {"complete": "alpha beta", "partial": "alpha"})
+    assert results[0].score == 1.0
+    assert results[1].score == 0.5
+    assert suite_pass_rate(results) == 0.5
+
+
+def test_empty_evaluation_suite_has_perfect_neutral_rate() -> None:
+    assert suite_pass_rate([]) == 1.0
 
 
 def test_prompt_injection_detection() -> None:
