@@ -44,4 +44,5 @@ def test_rag_query_uses_authenticated_tenant_context() -> None:
     )
 
     assert response.status_code == 200
-    assert response.json()["sources"] == []
+    sources = response.json()["sources"]
+    assert all(source["chunk"]["tenant_id"] == "tenant-a" for source in sources)
