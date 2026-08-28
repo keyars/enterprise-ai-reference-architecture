@@ -4,7 +4,8 @@ from fastapi.responses import JSONResponse
 from app.agents.api import router as agents_router
 from app.api.ai import router as ai_router
 from app.api.rag import router as rag_router
-from app.audit import record_event, snapshot as audit_snapshot
+from app.audit import record_event
+from app.audit import snapshot as audit_snapshot
 from app.observability import metrics, start_request
 
 app = FastAPI(
