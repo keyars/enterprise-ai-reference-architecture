@@ -45,8 +45,20 @@ app.include_router(agents_router)
 
 @app.get("/health", tags=["System"])
 async def health() -> dict[str, str]:
-    """Return service health information."""
+    """Liveness endpoint: confirms the process is serving requests."""
     return {"status": "ok", "service": "enterprise-ai-reference-architecture"}
+
+
+@app.get("/ready", tags=["System"])
+async def readiness() -> JSONResponse:
+    """Readiness endpoint for traffic management.
+
+    The reference application has no mandatory external dependency that is
+    initialized by the application lifecycle, so readiness is currently tied
+    to successful application startup. Dependency-specific checks belong here
+    when production adapters are enabled.
+    """
+    return JSONResponse({"status": "ready", "service": "enterprise-ai-reference-architecture"})
 
 
 @app.get("/metrics", tags=["System"])
